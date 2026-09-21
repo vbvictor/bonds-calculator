@@ -1,5 +1,7 @@
 # bond-rate-calculator
 
+**Живёт тут: https://vbvictor.github.io/bonds-calculator/**
+
 Статическое SPA: задаёте свой прогноз траектории ключевой ставки ЦБ РФ и сравниваете
 облигации — флоатеры и фиксы — по фактической доходности к погашению с учётом
 реинвестирования купонов.
@@ -83,8 +85,15 @@ python3 reference/ref.py   # напечатает эталоны тестов A,
 `.github/workflows/deploy.yml` гоняет типы и тесты **до** сборки: разошлась модель
 с эталонами — деплоя не будет.
 
-Один раз после первого пуша: **Settings → Pages → Source → GitHub Actions**.
-Не ветка. Это самая частая причина «всё зелёное, а страницы нет».
+Один раз после первого пуша надо включить сам Pages, иначе сборка проходит,
+а публикация падает с `404 … Ensure GitHub Pages has been enabled`.
+**Settings → Pages → Source → GitHub Actions**, не ветка. Или одной командой:
+
+```sh
+gh api -X POST repos/vbvictor/bonds-calculator/pages -f build_type=workflow
+```
+
+Здесь это уже сделано.
 
 `base` в `vite.config.ts` обязан совпадать с именем репозитория:
 
