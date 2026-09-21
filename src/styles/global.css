@@ -1,0 +1,596 @@
+/* Шрифты подключены локально, из node_modules: приложение не ходит в сеть вообще.
+   Берём только латиницу и кириллицу — интерфейс русский, остальные подмножества
+   в сборке были бы мёртвым грузом. */
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-sans/cyrillic-400.css';
+@import '@fontsource/ibm-plex-sans/cyrillic-500.css';
+@import '@fontsource/ibm-plex-sans/cyrillic-600.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
+@import '@fontsource/ibm-plex-mono/cyrillic-400.css';
+@import '@fontsource/ibm-plex-mono/cyrillic-500.css';
+@import '@fontsource/ibm-plex-mono/cyrillic-600.css';
+
+:root {
+  --ground: #eef1f0;
+  --panel: #ffffff;
+  --panel-soft: #f6f8f8;
+  --rule: #cbd5d4;
+  --ink: #0e2a33;
+  --ink-soft: #4f6b74;
+  --ink-faint: #7e969d;
+  --ks: #9aa9ac;
+  --win: #1f7a4d;
+  --lose: #b0432c;
+  --focus: #0e2a33;
+
+  --series-1: #2b7a8c;
+  --series-2: #b5731a;
+  --series-3: #6b4e9b;
+  --series-4: #1f7a4d;
+  --series-5: #b0432c;
+  --series-6: #3b6ea5;
+
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #0c2027;
+    --panel: #123039;
+    --panel-soft: #0f2a32;
+    --rule: #23515c;
+    --ink: #e4edee;
+    --ink-soft: #9db8be;
+    --ink-faint: #6e8f97;
+    --ks: #5e7a82;
+    --win: #5fce96;
+    --lose: #e0866c;
+    --focus: #e9b44c;
+
+    --series-1: #5fb8cc;
+    --series-2: #e9b44c;
+    --series-3: #b197e0;
+    --series-4: #5fce96;
+    --series-5: #e0866c;
+    --series-6: #7fb0e5;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --ground: #0c2027;
+  --panel: #123039;
+  --panel-soft: #0f2a32;
+  --rule: #23515c;
+  --ink: #e4edee;
+  --ink-soft: #9db8be;
+  --ink-faint: #6e8f97;
+  --ks: #5e7a82;
+  --win: #5fce96;
+  --lose: #e0866c;
+  --focus: #e9b44c;
+
+  --series-1: #5fb8cc;
+  --series-2: #e9b44c;
+  --series-3: #b197e0;
+  --series-4: #5fce96;
+  --series-5: #e0866c;
+  --series-6: #7fb0e5;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.num {
+  font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 30px 18px 60px;
+}
+
+/* ── шапка ─────────────────────────────────────────────────────────── */
+
+header.top {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  justify-content: space-between;
+}
+header.top h1 {
+  font-size: clamp(25px, 4.6vw, 38px);
+  line-height: 1.13;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  max-width: 19ch;
+}
+header.top p {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 64ch;
+}
+
+.theme-toggle {
+  display: flex;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+  flex: none;
+}
+.theme-toggle button {
+  background: var(--panel);
+  border: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.theme-toggle button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+/* ── сводка ────────────────────────────────────────────────────────── */
+
+.verdict {
+  margin: 28px 0 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.vtop {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+}
+.vcell {
+  background: var(--panel);
+  padding: 16px 18px;
+}
+.vcell.is-leader {
+  background: var(--panel-soft);
+}
+.vcell .nm {
+  font-size: 14px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vcell .nm i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.vcell .nm .crown {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--win);
+  font-weight: 600;
+}
+.vcell .v {
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 3px;
+}
+.vcell .sub {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+.vbot {
+  padding: 14px 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.vbot + .vbot {
+  border-top: 1px solid var(--rule);
+}
+.vbot b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.vbot .w {
+  color: var(--win);
+}
+.vbot .l {
+  color: var(--lose);
+}
+
+/* ── секции ────────────────────────────────────────────────────────── */
+
+section.b {
+  margin: 34px 0 0;
+}
+section.b h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+section.b p.sub {
+  margin: 0 0 14px;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  max-width: 68ch;
+}
+
+/* ── таблица траектории ────────────────────────────────────────────── */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+table.path {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.path th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+table.path td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+table.path tr:last-child td {
+  border-bottom: none;
+}
+table.path input[type='number'],
+table.path input[type='date'] {
+  width: 100%;
+  max-width: 150px;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.anchor-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.anchor-num {
+  flex: 0 1 120px;
+  min-width: 90px;
+}
+.mini-toggle {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+  flex: none;
+}
+.mini-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.mini-toggle button[aria-pressed='true'] {
+  background: var(--rule);
+  color: var(--ink);
+}
+.badge {
+  font-size: 11.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.badge.confirmed {
+  color: var(--series-1);
+  border-color: currentColor;
+}
+.rm {
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 7px;
+}
+.rm:hover {
+  color: var(--lose);
+}
+.row-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.pill {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 14px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+.pill:hover {
+  border-color: var(--series-1);
+  color: var(--series-1);
+}
+.pill.ghost {
+  color: var(--ink-faint);
+}
+
+/* ── генератор сетки ───────────────────────────────────────────────── */
+
+.generator {
+  margin-top: 12px;
+  padding: 14px 16px 16px;
+}
+.generator summary {
+  cursor: pointer;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  list-style: none;
+}
+.generator summary::-webkit-details-marker {
+  display: none;
+}
+.generator summary::before {
+  content: '▸ ';
+  color: var(--ink-faint);
+}
+.generator[open] summary::before {
+  content: '▾ ';
+}
+.gen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* ── карточки бумаг ────────────────────────────────────────────────── */
+
+.cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 16px 18px;
+}
+.card h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card h3 i {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  flex: none;
+}
+.card h3 input.name {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 0 1px;
+}
+.card h3 input.name:hover,
+.card h3 input.name:focus {
+  border-bottom-color: var(--rule);
+}
+.card h3 .rm {
+  margin-left: auto;
+}
+.f {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.f:last-child {
+  margin-bottom: 0;
+}
+.f label {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.f input,
+.f select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.err {
+  font-size: 12.5px;
+  color: var(--lose);
+}
+.hint {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.card .note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.f input[aria-invalid='true'] {
+  border-color: var(--lose);
+}
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ── графики ───────────────────────────────────────────────────────── */
+
+.chartbox {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 14px 8px 6px;
+  overflow-x: auto;
+}
+/* ResponsiveContainer внутри overflow-x:auto зацикливается на измерении ширины,
+   поэтому у внутренней обёртки явные min-width и height в пикселях. */
+.chart-inner {
+  min-width: 640px;
+  height: 320px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 11px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.sw {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  flex: none;
+}
+.sw.dash {
+  height: 0;
+  border-top: 2px dashed var(--ks);
+  width: 14px;
+  border-radius: 0;
+}
+
+.tip {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 9px 11px;
+  font-size: 13.5px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 12%);
+}
+.tip .tip-head {
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+}
+.tip .tip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.tip .tip-row b {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+/* ── футер ─────────────────────────────────────────────────────────── */
+
+footer.disclaimer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 13.5px;
+  max-width: 72ch;
+}
+footer.disclaimer strong {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+footer.disclaimer ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+footer.disclaimer li {
+  margin: 2px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

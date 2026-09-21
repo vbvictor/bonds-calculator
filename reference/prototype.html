@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Флоатер против фикса: расчёт по траектории ключевой ставки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#EEF1F0; --panel:#FFFFFF; --rule:#CBD5D4;
+  --ink:#0E2A33; --ink-soft:#4F6B74; --ink-faint:#7E969D;
+  --float:#2B7A8C; --fixed:#B5731A; --ks:#9AA9AC;
+  --win:#1F7A4D; --lose:#B0432C; --focus:#0E2A33;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0C2027; --panel:#123039; --rule:#23515C;
+  --ink:#E4EDEE; --ink-soft:#9DB8BE; --ink-faint:#6E8F97;
+  --float:#5FB8CC; --fixed:#E9B44C; --ks:#5E7A82;
+  --win:#5FCE96; --lose:#E0866C; --focus:#E9B44C;
+}}
+:root[data-theme="dark"]{
+  --ground:#0C2027; --panel:#123039; --rule:#23515C;
+  --ink:#E4EDEE; --ink-soft:#9DB8BE; --ink-faint:#6E8F97;
+  --float:#5FB8CC; --fixed:#E9B44C; --ks:#5E7A82;
+  --win:#5FCE96; --lose:#E0866C; --focus:#E9B44C;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Spline Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.55}
+.num{font-family:"Spline Sans Mono","SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:900px;margin:0 auto;padding:30px 18px 60px}
+header h1{font-size:clamp(25px,4.6vw,38px);line-height:1.13;font-weight:600;letter-spacing:-0.02em;margin:0 0 10px;max-width:19ch}
+header p{margin:0;color:var(--ink-soft);max-width:64ch}
+
+.verdict{margin:30px 0 0;background:var(--panel);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.vtop{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
+.vcell{background:var(--panel);padding:16px 18px}
+.vcell .nm{font-size:14px;color:var(--ink-soft);display:flex;align-items:center;gap:8px}
+.vcell .nm i{width:10px;height:10px;border-radius:2px;flex:none}
+.vcell .v{font-size:clamp(25px,5.4vw,34px);font-weight:600;letter-spacing:-0.01em;margin-top:3px}
+.vcell .sub{font-size:13px;color:var(--ink-faint);margin-top:2px}
+.vbot{padding:14px 18px;border-top:1px solid var(--rule);font-size:15px;color:var(--ink-soft)}
+.vbot b{font-weight:600}
+.vbot .w{color:var(--win)}
+
+section.b{margin:34px 0 0}
+section.b h2{font-size:18px;font-weight:600;margin:0 0 4px;letter-spacing:-0.01em}
+section.b p.sub{margin:0 0 14px;color:var(--ink-soft);font-size:14.5px;max-width:64ch}
+
+table.path{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+table.path th{text-align:left;font-size:13px;font-weight:500;color:var(--ink-soft);padding:9px 12px;border-bottom:1px solid var(--rule)}
+table.path td{padding:6px 12px;border-bottom:1px solid var(--rule)}
+table.path tr:last-child td{border-bottom:none}
+table.path input{width:100%;max-width:110px;padding:6px 8px;border:1px solid var(--rule);border-radius:3px;background:transparent;color:var(--ink);font:inherit;font-size:15px}
+.rm{background:transparent;border:none;color:var(--ink-faint);font:inherit;font-size:19px;line-height:1;cursor:pointer;padding:2px 7px}
+.rm:hover{color:var(--lose)}
+.addrow{margin-top:10px;font:inherit;font-size:14px;padding:7px 14px;cursor:pointer;background:transparent;color:var(--ink);border:1px solid var(--rule);border-radius:999px}
+.addrow:hover{border-color:var(--float);color:var(--float)}
+
+.cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:16px 18px}
+.card h3{margin:0 0 12px;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card h3 i{width:11px;height:11px;border-radius:2px;flex:none}
+.f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.f:last-child{margin-bottom:0}
+.f label{font-size:13.5px;color:var(--ink-soft)}
+.f input,.f select{width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:3px;background:transparent;color:var(--ink);font:inherit;font-size:15px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.chartbox{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:14px 8px 6px;overflow-x:auto}
+svg{display:block;width:100%;height:auto}
+.gridline{stroke:var(--rule);stroke-width:1;stroke-dasharray:2 4;opacity:.7}
+.axis{stroke:var(--rule);stroke-width:1}
+.tick{fill:var(--ink-faint);font-size:11px;font-family:"Spline Sans Mono",monospace}
+.lab{fill:var(--ink-faint);font-size:11.5px}
+.ln{fill:none;stroke-width:2.4;stroke-linejoin:round}
+.lnf{stroke:var(--float)} .lnx{stroke:var(--fixed)} .lnk{stroke:var(--ks);stroke-width:1.8;stroke-dasharray:4 4}
+.xp{fill:var(--ink);font-size:12px;font-weight:600;font-family:"Spline Sans Mono",monospace}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:11px;font-size:14px;color:var(--ink-soft)}
+.legend span{display:flex;align-items:center;gap:7px}
+.sw{width:11px;height:11px;border-radius:2px;flex:none}
+
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);color:var(--ink-faint);font-size:13.5px;max-width:68ch}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Флоатер против фикса при вашей траектории ставки</h1>
+  <p>Задайте, как по-вашему пойдёт ключевая ставка. Модель начислит купоны по обеим бумагам, переложит каждый купон под ставку денежного рынка и посчитает, кто в итоге дал больше.</p>
+</header>
+
+<div class="verdict">
+  <div class="vtop">
+    <div class="vcell">
+      <div class="nm"><i style="background:var(--float)"></i>Флоатер</div>
+      <div class="v num" id="rFloat">—</div>
+      <div class="sub num" id="sFloat"></div>
+    </div>
+    <div class="vcell">
+      <div class="nm"><i style="background:var(--fixed)"></i>Фикс</div>
+      <div class="v num" id="rFixed">—</div>
+      <div class="sub num" id="sFixed"></div>
+    </div>
+  </div>
+  <div class="vbot" id="verdict"></div>
+</div>
+
+<section class="b">
+  <h2>Траектория ключевой ставки</h2>
+  <p class="sub">Опорные точки вашего прогноза. Между ними модель интерполирует линейно, после последней держит ставку постоянной.</p>
+  <table class="path">
+    <thead><tr><th style="width:45%">Месяц от сегодня</th><th style="width:45%">Ключевая ставка, %</th><th></th></tr></thead>
+    <tbody id="pathBody"></tbody>
+  </table>
+  <button class="addrow" type="button" id="addRow">Добавить точку</button>
+</section>
+
+<section class="b">
+  <h2>Параметры бумаг</h2>
+  <p class="sub">Цены в процентах от номинала, как в стакане. Срок до погашения общий для обеих — сравнение идёт до погашения.</p>
+  <div class="cards">
+    <div class="card">
+      <h3><i style="background:var(--float)"></i>Флоатер</h3>
+      <div class="f"><label for="fSpread">Спред к ключевой, п.п.</label><input type="number" id="fSpread" value="1.5" step="0.1"></div>
+      <div class="f"><label for="fPrice">Цена, % номинала</label><input type="number" id="fPrice" value="100.2" step="0.05"></div>
+      <div class="two">
+        <div class="f"><label for="fFreq">Купонов в год</label>
+          <select id="fFreq"><option value="12">12</option><option value="4" selected>4</option><option value="2">2</option></select></div>
+        <div class="f"><label for="fLag">Лаг купона, мес.</label><input type="number" id="fLag" value="1" step="1" min="0" max="6"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3><i style="background:var(--fixed)"></i>Фикс</h3>
+      <div class="f"><label for="xCoupon">Купон, % годовых</label><input type="number" id="xCoupon" value="15.5" step="0.1"></div>
+      <div class="f"><label for="xPrice">Цена, % номинала</label><input type="number" id="xPrice" value="99.0" step="0.05"></div>
+      <div class="f"><label for="xFreq">Купонов в год</label>
+        <select id="xFreq"><option value="12">12</option><option value="4">4</option><option value="2" selected>2</option></select></div>
+    </div>
+    <div class="card">
+      <h3>Общее</h3>
+      <div class="f"><label for="horizon">Срок до погашения, месяцев</label><input type="number" id="horizon" value="36" step="1" min="3" max="240"></div>
+      <div class="f"><label for="reinv">Реинвестирование: ключевая плюс, п.п.</label><input type="number" id="reinv" value="1.0" step="0.1"></div>
+    </div>
+  </div>
+</section>
+
+<section class="b">
+  <h2>Как накапливается результат</h2>
+  <p class="sub">Стоимость позиции, делённая на вложенную сумму. Старт выше или ниже единицы — это эффект покупки с дисконтом или премией.</p>
+  <div class="chartbox"><svg id="c1" viewBox="0 0 720 300" role="img" aria-label="Накопление стоимости по двум бумагам"></svg></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--float)"></i>Флоатер</span>
+    <span><i class="sw" style="background:var(--fixed)"></i>Фикс</span>
+    <span><i class="sw" style="background:var(--ks)"></i>Ключевая ставка (правая шкала)</span>
+  </div>
+</section>
+
+<section class="b">
+  <h2>Где проходит граница</h2>
+  <p class="sub">Вся ваша траектория сдвигается параллельно вверх или вниз. Точка пересечения — тот сценарий, при котором бумаги дают одинаковый результат.</p>
+  <div class="chartbox"><svg id="c2" viewBox="0 0 720 300" role="img" aria-label="Чувствительность к сдвигу траектории ставки"></svg></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--float)"></i>Флоатер</span>
+    <span><i class="sw" style="background:var(--fixed)"></i>Фикс</span>
+  </div>
+</section>
+
+<footer>
+  Модель считает по чистой цене без НКД, налогов и комиссий, предполагает удержание до погашения и отсутствие дефолта. Реинвестирование идёт помесячно по ставке «ключевая плюс спред» с номинальной капитализацией. Кредитный спред бумаг считается неизменным. Для флоатера купон устанавливается по ключевой ставке на начало купонного периода с учётом заданного лага.
+</footer>
+
+</div>
+<script>
+(function(){
+var FACE=1000, el=function(i){return document.getElementById(i)};
+var path=[{m:0,r:14},{m:6,r:13.5},{m:12,r:12.5},{m:24,r:10.5}];
+
+function drawPath(){
+  var b=el('pathBody'); b.innerHTML='';
+  path.forEach(function(p,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><input type="number" step="1" min="0" value="'+p.m+'" data-i="'+i+'" data-k="m"></td>'+
+                 '<td><input type="number" step="0.25" value="'+p.r+'" data-i="'+i+'" data-k="r"></td>'+
+                 '<td>'+(path.length>1?'<button class="rm" data-del="'+i+'" aria-label="удалить">×</button>':'')+'</td>';
+    b.appendChild(tr);
+  });
+  b.querySelectorAll('input').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var v=parseFloat(inp.value); if(isNaN(v))return;
+      path[+inp.dataset.i][inp.dataset.k]=v; render();
+    });
+  });
+  b.querySelectorAll('[data-del]').forEach(function(btn){
+    btn.addEventListener('click',function(){ path.splice(+btn.dataset.del,1); path.sort(function(a,c){return a.m-c.m}); drawPath(); render(); });
+  });
+}
+
+function ksAt(m,shift){
+  var p=path.slice().sort(function(a,b){return a.m-b.m});
+  if(m<=p[0].m) return p[0].r+shift;
+  if(m>=p[p.length-1].m) return p[p.length-1].r+shift;
+  for(var i=0;i<p.length-1;i++){
+    if(m>=p[i].m&&m<=p[i+1].m){
+      var w=(m-p[i].m)/(p[i+1].m-p[i].m||1);
+      return p[i].r+(p[i+1].r-p[i].r)*w+shift;
+    }
+  }
+  return p[0].r+shift;
+}
+
+function cfg(){
+  return {
+    H:Math.max(3,Math.round(+el('horizon').value||36)),
+    reinv:(+el('reinv').value||0)/100,
+    fSpread:(+el('fSpread').value||0)/100,
+    fPrice:(+el('fPrice').value||100)/100*FACE,
+    fFreq:+el('fFreq').value,
+    fLag:Math.max(0,+el('fLag').value||0),
+    xCoup:(+el('xCoupon').value||0)/100,
+    xPrice:(+el('xPrice').value||100)/100*FACE,
+    xFreq:+el('xFreq').value
+  };
+}
+
+// accumulate one coupon from month `from` to month H at money-market rate
+function grow(amount,from,H,c,shift){
+  var v=amount;
+  for(var m=from;m<H;m++){
+    var r=(ksAt(m,shift)/100)+c.reinv;
+    v*=(1+r/12);
+  }
+  return v;
+}
+
+function run(c,shift,wantSeries){
+  var stepF=Math.round(12/c.fFreq), stepX=Math.round(12/c.xFreq);
+  var potF=0,potX=0, sF=[], sX=[], sK=[];
+  var coupF=[],coupX=[];
+  for(var m=stepF;m<=c.H;m+=stepF){
+    var setM=Math.max(0,m-stepF-c.fLag);
+    var rate=(ksAt(setM,shift)/100)+c.fSpread;
+    coupF.push({m:m,amt:FACE*rate/c.fFreq});
+  }
+  for(var m2=stepX;m2<=c.H;m2+=stepX) coupX.push({m:m2,amt:FACE*c.xCoup/c.xFreq});
+
+  if(wantSeries){
+    var pF=0,pX=0,iF=0,iX=0;
+    for(var t=0;t<=c.H;t++){
+      var rr=(ksAt(t,shift)/100)+c.reinv;
+      if(t>0){ pF*=(1+rr/12); pX*=(1+rr/12); }
+      while(iF<coupF.length&&coupF[iF].m===t){ pF+=coupF[iF].amt; iF++; }
+      while(iX<coupX.length&&coupX[iX].m===t){ pX+=coupX[iX].amt; iX++; }
+      sF.push((FACE+pF)/c.fPrice); sX.push((FACE+pX)/c.xPrice); sK.push(ksAt(t,shift));
+    }
+    potF=pF; potX=pX;
+  } else {
+    coupF.forEach(function(k){ potF+=grow(k.amt,k.m,c.H,c,shift); });
+    coupX.forEach(function(k){ potX+=grow(k.amt,k.m,c.H,c,shift); });
+  }
+  var fvF=FACE+potF, fvX=FACE+potX, yrs=c.H/12;
+  return {
+    rF:Math.pow(fvF/c.fPrice,1/yrs)-1, rX:Math.pow(fvX/c.xPrice,1/yrs)-1,
+    fvF:fvF, fvX:fvX, sF:sF, sX:sX, sK:sK,
+    avgKS:(function(){var s=0;for(var i=0;i<=c.H;i++)s+=ksAt(i,shift);return s/(c.H+1)})()
+  };
+}
+
+function lineChart(id,series,opts){
+  var W=720,H=300,L=54,R=opts.rightAxis?54:16,T=16,B=40,s='';
+  var all=[];series.forEach(function(se){if(!se.right)all=all.concat(se.data)});
+  var lo=Math.min.apply(null,all),hi=Math.max.apply(null,all);
+  var pad=Math.max((hi-lo)*0.15,1e-4);lo-=pad;hi+=pad;
+  var n=series[0].data.length;
+  var X=function(i){return L+(W-L-R)*(n<2?0:i/(n-1))};
+  var Y=function(v){return T+(H-T-B)*(1-(v-lo)/(hi-lo))};
+  for(var g=0;g<=4;g++){
+    var v=lo+(hi-lo)*g/4,yy=Y(v);
+    s+='<line class="gridline" x1="'+L+'" y1="'+yy+'" x2="'+(W-R)+'" y2="'+yy+'"/>';
+    s+='<text class="tick" x="'+(L-8)+'" y="'+(yy+4)+'" text-anchor="end">'+opts.fmtY(v)+'</text>';
+  }
+  var ticks=opts.xTicks||5;
+  for(var t=0;t<=ticks;t++){
+    var idx=Math.round((n-1)*t/ticks),xx=X(idx);
+    s+='<line class="axis" x1="'+xx+'" y1="'+(H-B)+'" x2="'+xx+'" y2="'+(H-B+5)+'"/>';
+    s+='<text class="tick" x="'+xx+'" y="'+(H-B+19)+'" text-anchor="middle">'+opts.fmtX(idx)+'</text>';
+  }
+  s+='<line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/>';
+  s+='<text class="lab" x="'+((L+W-R)/2)+'" y="'+(H-4)+'" text-anchor="middle">'+opts.xLabel+'</text>';
+
+  if(opts.rightAxis){
+    var rs=series.filter(function(x){return x.right})[0];
+    if(rs){
+      var rlo=Math.min.apply(null,rs.data),rhi=Math.max.apply(null,rs.data);
+      var rp=Math.max((rhi-rlo)*0.3,0.3);rlo-=rp;rhi+=rp;
+      var RY=function(v){return T+(H-T-B)*(1-(v-rlo)/(rhi-rlo))};
+      for(var q=0;q<=3;q++){
+        var rv=rlo+(rhi-rlo)*q/3;
+        s+='<text class="tick" x="'+(W-R+8)+'" y="'+(RY(rv)+4)+'" text-anchor="start">'+rv.toFixed(1)+'</text>';
+      }
+      var d='';rs.data.forEach(function(v,i){d+=(i?'L':'M')+X(i).toFixed(1)+' '+RY(v).toFixed(1)+' '});
+      s+='<path class="ln lnk" d="'+d+'"/>';
+    }
+  }
+  series.filter(function(x){return !x.right}).forEach(function(se){
+    var d='';se.data.forEach(function(v,i){d+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' '});
+    s+='<path class="ln '+se.cls+'" d="'+d+'"/>';
+  });
+  if(opts.cross!=null&&opts.cross>=0&&opts.cross<n){
+    var cx=X(opts.cross);
+    s+='<line class="axis" x1="'+cx+'" y1="'+T+'" x2="'+cx+'" y2="'+(H-B)+'" stroke-dasharray="3 3"/>';
+    s+='<text class="xp" x="'+(cx+7)+'" y="'+(T+14)+'">'+opts.crossLabel+'</text>';
+  }
+  el(id).innerHTML=s;
+}
+
+function render(){
+  var c=cfg(), base=run(c,0,true);
+  var pct=function(x){return (x*100).toFixed(2).replace('.',',')+'%'};
+  el('rFloat').textContent=pct(base.rF);
+  el('rFixed').textContent=pct(base.rX);
+  el('sFloat').textContent='итого '+Math.round(base.fvF).toLocaleString('ru-RU')+' ₽ на 1000 номинала';
+  el('sFixed').textContent='итого '+Math.round(base.fvX).toLocaleString('ru-RU')+' ₽ на 1000 номинала';
+
+  var gap=(base.rF-base.rX)*100, win=gap>0?'Флоатер':'Фикс';
+  var txt='При вашей траектории средняя ключевая ставка за период — <b>'+base.avgKS.toFixed(2).replace('.',',')+'%</b>. ';
+  if(Math.abs(gap)<0.03){ txt+='Бумаги практически равны, разница меньше 3 б.п.'; }
+  else { txt+='Выигрывает <b class="w">'+win+'</b>, преимущество <b>'+Math.abs(gap).toFixed(2).replace('.',',')+' п.п.</b> годовых.'; }
+  el('verdict').innerHTML=txt;
+
+  lineChart('c1',[
+    {data:base.sF,cls:'lnf'},{data:base.sX,cls:'lnx'},{data:base.sK,right:true}
+  ],{fmtY:function(v){return v.toFixed(2)},fmtX:function(i){return i+'м'},xLabel:'месяцев от сегодня',rightAxis:true,xTicks:6});
+
+  var shifts=[],rf=[],rx=[],cross=null;
+  for(var i=0;i<=70;i++){
+    var sh=-6+ (8*i/70);
+    var r=run(c,sh,false);
+    shifts.push(sh);rf.push(r.rF*100);rx.push(r.rX*100);
+    if(i>0){
+      var prev=rf[i-1]-rx[i-1], cur=rf[i]-rx[i];
+      if(prev===0||(prev<0)!==(cur<0)) cross=i;
+    }
+  }
+  var cl='';
+  if(cross!=null){
+    var shCross=shifts[cross];
+    cl=(shCross>0?'+':'')+shCross.toFixed(1).replace('.',',')+' п.п.';
+  }
+  lineChart('c2',[{data:rf,cls:'lnf'},{data:rx,cls:'lnx'}],{
+    fmtY:function(v){return v.toFixed(1)},
+    fmtX:function(i){var v=shifts[i];return (v>0?'+':'')+v.toFixed(1)},
+    xLabel:'параллельный сдвиг всей траектории, п.п.',
+    cross:cross,crossLabel:cl,xTicks:8
+  });
+}
+
+el('addRow').addEventListener('click',function(){
+  var last=path[path.length-1];
+  path.push({m:last.m+12,r:Math.max(0,last.r-1)});
+  drawPath();render();
+});
+['horizon','reinv','fSpread','fPrice','fFreq','fLag','xCoupon','xPrice','xFreq'].forEach(function(i){
+  el(i).addEventListener('input',render); el(i).addEventListener('change',render);
+});
+drawPath();render();
+})();
+</script>
+</body>
+</html>
